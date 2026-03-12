@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Zoho Auth — Connecting...</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background: #f9f9f9;
+      color: #333;
+    }
+    .box {
+      text-align: center;
+      padding: 32px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+      max-width: 360px;
+    }
+    .icon { font-size: 48px; margin-bottom: 12px; }
+    h2 { margin: 0 0 8px; font-size: 18px; }
+    p  { margin: 0; color: #666; font-size: 14px; line-height: 1.5; }
+    .error { color: #c0392b; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="icon" id="icon">⏳</div>
+    <h2 id="title">Connecting to Zoho…</h2>
+    <p id="msg">Please wait while we complete sign-in.</p>
+  </div>
+
+  <script>
+    (function () {
+      // Parse query params from the redirect URL
+      // Zoho sends: ?code=xxx&location=in&accounts-server=https://accounts.zoho.in
+      const params = new URLSearchParams(window.location.search);
+      const code  = params.get("code");
+      const error = params.get("error");
+
+      const icon  = document.getElementById("icon");
+      const title = document.getElementById("title");
+      const msg   = document.getElementById("msg");
+
+      if (error) {
+        icon.textContent  = "❌";
+        title.textContent = "Authorization Failed";
+        msg.textContent   = error + ": " + (params.get("error_description") ?? "");
+        msg.classList.add("error");
+        return;
+      }
+
+      if (!code) {
+        icon.textContent  = "⚠️";
+        title.textContent = "No code received";
+        msg.textContent   = "Zoho did not return an authorization code. Please try again.";
+        msg.classList.add("error");
+        return;
+      }
+
+      // Post the code back to the Figma plugin iframe that opened this popup
+      if (window.opener) {
+        window.opener.postMessage(
+          { type: "zoho-oauth-code", code: code },
+          "*"   // Figma iframe origin varies; "*" is safe here since we only send the code
+        );
+        icon.textContent  = "✅";
+        title.textContent = "Connected!";
+        msg.textContent   = "You can close this window — returning to Figma…";
+        setTimeout(() => window.close(), 1500);
+      } else {
+        icon.textContent  = "⚠️";
+        title.textContent = "Could not contact Figma";
+        msg.textContent   = "window.opener not available. Please close this and try again.";
+        msg.classList.add("error");
+      }
+    })();
+  </script>
+</body>
+</html>
