@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"/></head>
+<body>
+<script>
+  // This page is loaded in a hidden iframe by the Figma plugin.
+  // When the plugin sends a "poll_oauth_code" message, we check
+  // localStorage (same origin as callback.html) and post the code back.
+  window.addEventListener("message", function(e) {
+    if (e.data && e.data.type === "poll_oauth_code") {
+      try {
+        var raw = localStorage.getItem("zoho_oauth_code");
+        if (raw) {
+          var data = JSON.parse(raw);
+          // Only use codes less than 10 minutes old
+          if (Date.now() - data.ts < 10 * 60 * 1000) {
+            localStorage.removeItem("zoho_oauth_code"); // consume it
+            e.source.postMessage({ type: "zoho_oauth_code", code: data.code }, e.origin);
+          }
+        }
+      } catch(err) {
+        e.source.postMessage({ type: "zoho_oauth_code", code: null }, e.origin);
+      }
+    }
+  });
+</script>
+</body>
+</html>
